@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+
 html, body {
     margin: 0;
     width: 100%;
@@ -13,54 +14,86 @@ html, body {
     background: white;
     cursor: pointer;
 }
+
+#mensaje {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-family: Arial, sans-serif;
+    font-size: 22px;
+    letter-spacing: 4px;
+    color: #777;
+
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
 </style>
 </head>
 
 <body>
 
+<div id="mensaje">✦ CLIC ✦</div>
+
 <script>
 
-const smileys = [
-    "😀","😃","😄","😁","😆","😅","😂","🤣",
-    "😊","😇","🙂","🙃","😉","😌","😍","🥰",
-    "😘","😗","😙","😚","😋","😛","😜","🤪",
-    "😎","🤩","🥳"
+const emojis = [
+    "🪭",
+    "🪼",
+    "🎡",
+    "🏰",
+    "🛟",
+    "🎢",
+    "🍄",
+    "🧸",
+    "🐇",
+    "🎠",
+    "🏹",
+    "🧁"
 ];
 
 document.body.addEventListener("click", function(event) {
 
-    // 30 smileys por clic
-    for (let i = 0; i < 30; i++) {
+    document.getElementById("mensaje").style.opacity = "0";
 
-        const smiley = document.createElement("div");
+    // 50 emojis por clic
+    for (let i = 0; i < 50; i++) {
 
-        smiley.textContent =
-            smileys[Math.floor(Math.random() * smileys.length)];
+        const emoji = document.createElement("div");
 
-        smiley.style.position = "fixed";
-        smiley.style.fontSize = (25 + Math.random() * 30) + "px";
-        smiley.style.width = "50px";
-        smiley.style.height = "50px";
-        smiley.style.lineHeight = "50px";
-        smiley.style.textAlign = "center";
-        smiley.style.userSelect = "none";
-        smiley.style.pointerEvents = "none";
+        emoji.textContent =
+            emojis[Math.floor(Math.random() * emojis.length)];
 
-        document.body.appendChild(smiley);
+        emoji.style.position = "fixed";
+        emoji.style.fontSize = (25 + Math.random() * 30) + "px";
+        emoji.style.width = "50px";
+        emoji.style.height = "50px";
+        emoji.style.lineHeight = "50px";
+        emoji.style.textAlign = "center";
+        emoji.style.userSelect = "none";
+        emoji.style.pointerEvents = "none";
 
+        document.body.appendChild(emoji);
+
+        // Empiezan cerca del clic
         let x = event.clientX - 25;
         let y = event.clientY - 25;
 
-        // Pequeña dispersión alrededor del clic
-        x += (Math.random() - 0.5) * 100;
-        y += (Math.random() - 0.5) * 50;
+        // Más dispersión inicial
+        x += (Math.random() - 0.5) * 180;
+        y += (Math.random() - 0.5) * 100;
 
-        // Salen disparados en distintas direcciones
-        let vx = (Math.random() - 0.5) * 16;
-        let vy = -Math.random() * 14 - 3;
+        // Muchísima más velocidad horizontal
+        let vx = (Math.random() - 0.5) * 30;
 
-        const gravity = 0.35;
-        const bounce = 0.75;
+        // Algunos salen hacia arriba con mucha fuerza
+        let vy = -Math.random() * 22 - 5;
+
+        const gravity = 0.38;
+        const bounce = 0.78;
 
         function animate() {
 
@@ -94,8 +127,8 @@ document.body.addEventListener("click", function(event) {
                 }
             }
 
-            smiley.style.left = x + "px";
-            smiley.style.top = y + "px";
+            emoji.style.left = x + "px";
+            emoji.style.top = y + "px";
 
             requestAnimationFrame(animate);
         }
