@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: white;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<script>
+
+const smileys = [
+    "😀","😃","😄","😁","😆","😅","😂","🤣",
+    "😊","😇","🙂","🙃","😉","😌","😍","🥰",
+    "😘","😗","😙","😚","😋","😛","😜","🤪",
+    "😎","🤩","🥳"
+];
+
+document.body.addEventListener("click", function(event) {
+
+    // 30 smileys por clic
+    for (let i = 0; i < 30; i++) {
+
+        const smiley = document.createElement("div");
+
+        smiley.textContent =
+            smileys[Math.floor(Math.random() * smileys.length)];
+
+        smiley.style.position = "fixed";
+        smiley.style.fontSize = (25 + Math.random() * 30) + "px";
+        smiley.style.width = "50px";
+        smiley.style.height = "50px";
+        smiley.style.lineHeight = "50px";
+        smiley.style.textAlign = "center";
+        smiley.style.userSelect = "none";
+        smiley.style.pointerEvents = "none";
+
+        document.body.appendChild(smiley);
+
+        let x = event.clientX - 25;
+        let y = event.clientY - 25;
+
+        // Pequeña dispersión alrededor del clic
+        x += (Math.random() - 0.5) * 100;
+        y += (Math.random() - 0.5) * 50;
+
+        // Salen disparados en distintas direcciones
+        let vx = (Math.random() - 0.5) * 16;
+        let vy = -Math.random() * 14 - 3;
+
+        const gravity = 0.35;
+        const bounce = 0.75;
+
+        function animate() {
+
+            vy += gravity;
+
+            x += vx;
+            y += vy;
+
+            const maxX = window.innerWidth - 50;
+            const maxY = window.innerHeight - 50;
+
+            // Rebote izquierda
+            if (x <= 0) {
+                x = 0;
+                vx *= -bounce;
+            }
+
+            // Rebote derecha
+            if (x >= maxX) {
+                x = maxX;
+                vx *= -bounce;
+            }
+
+            // Rebote suelo
+            if (y >= maxY) {
+                y = maxY;
+                vy *= -bounce;
+
+                if (Math.abs(vy) < 1) {
+                    vy = 0;
+                }
+            }
+
+            smiley.style.left = x + "px";
+            smiley.style.top = y + "px";
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    }
+
+});
+
+</script>
+
+</body>
+</html>
