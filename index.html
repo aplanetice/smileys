@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
   margin: 0;
@@ -24,9 +22,9 @@ html, body {
   inset: 0;
   display: grid;
   place-items: center;
+  color: black;
   font: 22px Arial, sans-serif;
   letter-spacing: 4px;
-  color: black;
   pointer-events: none;
 }
 
@@ -41,7 +39,6 @@ html, body {
   text-align: center;
   pointer-events: none;
   user-select: none;
-  will-change: transform;
 }
 </style>
 </head>
@@ -70,8 +67,11 @@ function mezclar(lista) {
   return lista;
 }
 
-function reiniciarSiHaceFalta() {
-  // Reinicia al llenar aproximadamente toda la pantalla
+document.body.addEventListener("pointerdown", event => {
+  if (event.button !== undefined && event.button !== 0) return;
+
+  document.getElementById("mensaje").style.display = "none";
+
   const capacidad = Math.ceil(
     window.innerWidth * window.innerHeight / (tam * tam) * 1.5
   );
@@ -81,21 +81,12 @@ function reiniciarSiHaceFalta() {
     document.querySelectorAll(".emoji").forEach(el => el.remove());
     total = 0;
   }
-}
-
-document.body.addEventListener("pointerdown", function(event) {
-  if (event.button !== undefined && event.button !== 0) return;
-
-  document.getElementById("mensaje").style.display = "none";
-  reiniciarSiHaceFalta();
 
   let disponibles = emojis.filter(e => !anteriores.includes(e));
   if (disponibles.length < 5) disponibles = [...emojis];
 
   const tanda = mezclar([...disponibles]).slice(0, 5);
   anteriores = tanda;
-
-  const miGeneracion = generacion;
   total += tanda.length;
 
   tanda.forEach(simbolo => {
@@ -107,18 +98,19 @@ document.body.addEventListener("pointerdown", function(event) {
     let x = event.clientX - tam / 2;
     let y = event.clientY - tam / 2;
 
+    // Cada emoji sale con una dirección y velocidad diferentes
     const angulo = Math.random() * Math.PI * 2;
-    const velocidad = 5 + Math.random() * 7;
-
+    const velocidad = 7 + Math.random() * 8;
     let vx = Math.cos(angulo) * velocidad;
-    let vy = Math.sin(angulo) * velocidad - 4;
+    let vy = Math.sin(angulo) * velocidad;
 
-    const gravedad = 0.28;
+    const gravedad = 0.16;
     let rebotes = 0;
     let pasos = 0;
+    let quieto = false;
 
     function mover() {
-      if (miGeneracion !== generacion || !el.isConnected) return;
+      if (quieto || !el.isConnected) return;
 
       pasos++;
 
@@ -129,39 +121,47 @@ document.body.addEventListener("pointerdown", function(event) {
       const maxX = Math.max(0, window.innerWidth - tam);
       const maxY = Math.max(0, window.innerHeight - tam);
 
-      // Rebotes laterales
-      if (x < 0) {
+      // Rebote izquierdo y derecho
+      if (x <= 0) {
         x = 0;
-        vx = Math.abs(vx) * 0.65;
-      } else if (x > maxX) {
+        vx = Math.abs(vx) * 0.82;
+        rebotes++;
+      } else if (x >= maxX) {
         x = maxX;
-        vx = -Math.abs(vx) * 0.65;
+        vx = -Math.abs(vx) * 0.82;
+        rebotes++;
       }
 
-      // Rebote en el techo
-      if (y < 0) {
+      // Rebote contra el techo
+      if (y <= 0) {
         y = 0;
-        vy = Math.abs(vy) * 0.6;
+        vy = Math.abs(vy) * 0.82;
+        rebotes++;
       }
 
-      // Rebote en el suelo, perdiendo energía
+      // Rebote contra el suelo
       if (y >= maxY) {
         y = maxY;
-        vy = -Math.abs(vy) * 0.48;
-        vx *= 0.88;
+        vy = -Math.abs(vy) * 0.72;
+        vx *= 0.90;
         rebotes++;
       }
 
       el.style.transform = `translate(${x}px, ${y}px)`;
 
-      // Tras varios rebotes, termina y el emoji se queda
+      // Rebotes progresivamente más suaves; luego se queda
+      if (pasos > 30) {
+        vx *= 0.995;
+        vy *= 0.995;
+      }
+
       if (
-        (rebotes >= 5 && Math.abs(vy) < 3) ||
-        pasos >= 240 ||
-        (rebotes >= 8)
+        pasos >= 300 ||
+        (rebotes >= 5 && Math.abs(vx) < 0.7 &&
+         Math.abs(vy) < 1.2)
       ) {
+        quieto = true;
         el.style.transform = `translate(${x}px, ${y}px)`;
-        el.style.willChange = "auto";
         return;
       }
 
