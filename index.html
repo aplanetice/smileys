@@ -46,7 +46,6 @@ html, body {
 </head>
 
 <body>
-
 <div id="mensaje">✦ CLIC ✦</div>
 
 <script>
@@ -58,15 +57,13 @@ const emojis = [
 ];
 
 let anteriores = [];
-let cantidadEnPantalla = 0;
 
 document.body.addEventListener("pointerdown", function(event) {
   if (event.button !== undefined && event.button !== 0) return;
 
   document.getElementById("mensaje").style.display = "none";
 
-
-
+  // Prioriza emojis que no aparecieron en la tanda anterior
   let disponibles = emojis.filter(
     emoji => !anteriores.includes(emoji)
   );
@@ -75,16 +72,16 @@ document.body.addEventListener("pointerdown", function(event) {
     disponibles = [...emojis];
   }
 
-  // Mezcla aleatoriamente la colección
+  // Baraja la lista al azar
   for (let i = disponibles.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [disponibles[i], disponibles[j]] =
       [disponibles[j], disponibles[i]];
   }
 
+  // Cinco emojis diferentes por clic
   const tanda = disponibles.slice(0, 5);
   anteriores = tanda;
-  cantidadEnPantalla += tanda.length;
 
   tanda.forEach(simbolo => {
     const el = document.createElement("div");
@@ -134,14 +131,8 @@ document.body.addEventListener("pointerdown", function(event) {
 
       el.style.transform = `translate(${x}px, ${y}px)`;
 
-      // Al terminar, el emoji permanece quieto en pantalla
-      if (
-        rebotes >= 4 ||
-        pasos >= 240 ||
-        (Math.abs(vx) < 0.25 &&
-         Math.abs(vy) < 0.5 &&
-         y >= maxY)
-      ) {
+      // Termina el movimiento, pero conserva el emoji
+      if (rebotes >= 4 || pasos >= 240) {
         el.style.transform =
           `translate(${x}px, ${Math.min(y, maxY)}px)`;
         return;
@@ -155,6 +146,5 @@ document.body.addEventListener("pointerdown", function(event) {
   });
 });
 </script>
-
 </body>
 </html>
