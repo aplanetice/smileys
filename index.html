@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,8 +14,8 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: white;
-  cursor: pointer;
   touch-action: manipulation;
+  cursor: pointer;
 }
 
 #mensaje {
@@ -30,15 +31,16 @@ html, body {
 
 .emoji {
   position: fixed;
-  left: 0;
   top: 0;
+  left: 0;
   width: 42px;
   height: 42px;
+  display: grid;
+  place-items: center;
   font-size: 32px;
-  line-height: 42px;
-  text-align: center;
   pointer-events: none;
   user-select: none;
+  will-change: transform;
 }
 </style>
 </head>
@@ -51,14 +53,19 @@ const emojis = [
   "☁️", "🏹", "🙃", "🪭", "🍌", "🎠",
   "🎾", "🪸", "🎡", "🏰", "🪼", "🍄",
   "🧸", "🎢", "⛲️", "💊", "🍕", "🎪",
-  "🥊", "🛼", "🍰", "🕸", "🐇", "☹️"
-];
+  "🥊", "🛼", "🍰", "🕸", "🐇", "☹️",
 
+  "⚡️", "🔥", "💧", "🌧️", "🌊", "🐚",
+  "🪻", "🌵", "🥥", "🍿", "🧃", "🥤",
+  "🧋", "🍡", "🪩", "❌", "🛟"
+];
 const tam = 42;
+const objetos = [];
 let anteriores = [];
-let total = 0;
-let generacion = 0;
-let nivel = 0;
+let ultimaTanda = [];
+let ultimoToque = { x: innerWidth / 2, y: innerHeight / 2 };
+let ultimoTiempo = 0;
+let ronda = 0;
 
 function mezclar(lista) {
   for (let i = lista.length - 1; i > 0; i--) {
@@ -68,39 +75,41 @@ function mezclar(lista) {
   return lista;
 }
 
-document.body.addEventListener("pointerdown", event => {
+function limites() {
+  return {
+    x: Math.max(0, innerWidth - tam),
+    y: Math.max(0, innerHeight - tam)
+  };
+}
+
+function reiniciar() {
+  ronda++;
+  objetos.forEach(o => o.el.remove());
+  objetos.length = 0;
+  ultimaTanda = [];
+}
+
+function tocar(event) {
   if (event.button !== undefined && event.button !== 0) return;
 
   document.getElementById("mensaje").style.display = "none";
+  ultimoToque = { x: event.clientX, y: event.clientY };
 
-  const capacidad = Math.ceil(
-    window.innerWidth * window.innerHeight / (tam * tam)
+  // Reinicia al acumular suficientes emojis para llenar la pantalla
+  const capacidad = Math.max(
+    30,
+    Math.floor(innerWidth * innerHeight / (tam * tam) * 1.15)
   );
 
-  // Al llenar la pantalla, comienza una ronda nueva
-  if (total + 5 > capacidad) {
-    generacion++;
-    document.querySelectorAll(".emoji").forEach(el => el.remove());
-    total = 0;
-    nivel = 0;
-  }
+  if (objetos.length + 5 > capacidad) reiniciar();
 
   let disponibles = emojis.filter(e => !anteriores.includes(e));
+
   if (disponibles.length < 5) disponibles = [...emojis];
 
   const tanda = mezclar([...disponibles]).slice(0, 5);
   anteriores = tanda;
-  total += tanda.length;
-
-  const miGeneracion = generacion;
-  const maxX = Math.max(0, window.innerWidth - tam);
-  const maxY = Math.max(0, window.innerHeight - tam);
-
-  // Cada tanda ocupa una franja progresivamente más alta.
-  // Dentro de la franja, el punto de aterrizaje es aleatorio.
-  const alturaFranja = Math.max(50, window.innerHeight * 0.12);
-  const baseY = Math.max(0, maxY - nivel * alturaFranja);
-  nivel++;
+  ultimaTanda = tanda;
 
   tanda.forEach(simbolo => {
     const el = document.createElement("div");
@@ -108,83 +117,62 @@ document.body.addEventListener("pointerdown", event => {
     el.textContent = simbolo;
     document.body.appendChild(el);
 
-    let x = event.clientX - tam / 2;
-    let y = event.clientY - tam / 2;
-
-    const destinoY = Math.max(
-      0,
-      baseY - Math.random() * alturaFranja
-    );
-
-    const destinoX = Math.random() * maxX;
-
-    // Lanzamiento aleatorio para que reboten por la pantalla
     const angulo = Math.random() * Math.PI * 2;
-    const velocidad = 6 + Math.random() * 7;
-    let vx = Math.cos(angulo) * velocidad;
-    let vy = Math.sin(angulo) * velocidad;
+    const velocidad = 2.5 + Math.random() * 4;
 
-    let pasos = 0;
-    let fase = "rebote";
+    objetos.push({
+      el,
+      x: event.clientX - tam / 2,
+      y: event.clientY - tam / 2,
+      vx: Math.cos(angulo) * velocidad,
+      vy: Math.sin(angulo) * velocidad,
+      giro: (Math.random() - 0.5) * 0.08,
+      rotacion: Math.random() * 360
+    });
+  });
+}
 
-    function mover() {
-      if (!el.isConnected || miGeneracion !== generacion) return;
+document.body.addEventListener("pointerdown", tocar);
 
-      pasos++;
+// Una sola animación compartida para ahorrar trabajo en móvil
+function animar(tiempo) {
+  const dt = ultimoTiempo
+    ? Math.min((tiempo - ultimoTiempo) / 16.67, 2)
+    : 1;
 
-      if (fase === "rebote") {
-        x += vx;
-        y += vy;
+  ultimoTiempo = tiempo;
+  const borde = limites();
 
-        const ancho = Math.max(0, window.innerWidth - tam);
-        const alto = Math.max(0, window.innerHeight - tam);
+  for (const o of objetos) {
+    o.x += o.vx * dt;
+    o.y += o.vy * dt;
+    o.rotacion += o.giro * dt;
 
-        if (x <= 0) {
-          x = 0;
-          vx = Math.abs(vx) * 0.78;
-        } else if (x >= ancho) {
-          x = ancho;
-          vx = -Math.abs(vx) * 0.78;
-        }
-
-        if (y <= 0) {
-          y = 0;
-          vy = Math.abs(vy) * 0.78;
-        } else if (y >= alto) {
-          y = alto;
-          vy = -Math.abs(vy) * 0.78;
-        }
-
-        // Tras unos rebotes, se frena y se acomoda en la franja
-        if (pasos > 24) {
-          vx *= 0.975;
-          vy *= 0.975;
-        }
-
-        if (pasos >= 100) {
-          fase = "colocar";
-        }
-      } else {
-        // Termina de acomodarse suavemente, sin cuadrícula
-        x += (destinoX - x) * 0.07;
-        y += (destinoY - y) * 0.07;
-
-        if (Math.abs(destinoX - x) < 0.8 &&
-            Math.abs(destinoY - y) < 0.8) {
-          el.style.transform =
-            `translate(${destinoX}px, ${destinoY}px)`;
-          return;
-        }
-      }
-
-      el.style.transform = `translate(${x}px, ${y}px)`;
-      requestAnimationFrame(mover);
+    // Rebote continuo por los cuatro lados
+    if (o.x <= 0) {
+      o.x = 0;
+      o.vx = Math.abs(o.vx);
+    } else if (o.x >= borde.x) {
+      o.x = borde.x;
+      o.vx = -Math.abs(o.vx);
     }
 
-    el.style.transform = `translate(${x}px, ${y}px)`;
-    requestAnimationFrame(mover);
-  });
-});
+    if (o.y <= 0) {
+      o.y = 0;
+      o.vy = Math.abs(o.vy);
+    } else if (o.y >= borde.y) {
+      o.y = borde.y;
+      o.vy = -Math.abs(o.vy);
+    }
+
+    o.el.style.transform =
+      `translate3d(${o.x}px, ${o.y}px, 0) rotate(${o.rotacion}deg)`;
+  }
+
+  requestAnimationFrame(animar);
+}
+
+requestAnimationFrame(animar);
 </script>
 </body>
 </html>
