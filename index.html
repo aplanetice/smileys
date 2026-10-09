@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,8 +15,8 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: white;
-  cursor: pointer;
   touch-action: manipulation;
+  cursor: pointer;
 }
 
 #mensaje {
@@ -25,10 +25,8 @@ html, body {
   display: grid;
   place-items: center;
   color: black;
-  font-family: Helvetica, Arial, sans-serif;
-  font-size: 18pt;
-  font-weight: normal;
-  letter-spacing: 0;
+  font: 18px Arial, sans-serif;
+  letter-spacing: 4px;
   pointer-events: none;
 }
 
@@ -50,7 +48,7 @@ html, body {
 
 <body>
 
-<div id="mensaje">Tap anywhere</div>
+<div id="mensaje">TAP</div>
 
 <script>
 const emojis = [
@@ -58,7 +56,7 @@ const emojis = [
   "🎾", "🪸", "🎡", "🏰", "🪼", "🍄",
   "🧸", "🎢", "⛲️", "💊", "🍕", "🎪",
   "🥊", "🛼", "🍰", "🕸", "🐇", "☹️",
-  "⚡️", "🔥", "💧", "🌩", "⚓️", "🐚",
+  "⚡️", "🔥", "💧", "🌧", "⚓️", "🐚",
   "🪻", "🌵", "🥥", "🍿", "⛓", "🥤",
   "🧋", "🍡", "🪩", "❌", "🛟", "📀",
   "✖️", "🍇", "🖕🏼", "🔫", "🧼", "🫧"
@@ -89,7 +87,7 @@ document.body.addEventListener("pointerdown", event => {
 
   document.getElementById("mensaje").style.display = "none";
 
-  // Elige cinco emojis diferentes y evita repetir la tanda anterior
+  // Evita repetir los emojis de la tanda inmediatamente anterior
   let disponibles = emojis.filter(
     emoji => !anteriores.includes(emoji)
   );
@@ -107,20 +105,19 @@ document.body.addEventListener("pointerdown", event => {
     el.textContent = simbolo;
     document.body.appendChild(el);
 
-    const inicioX = Math.max(
-      0, Math.min(event.clientX - tam / 2, window.innerWidth - tam)
-    );
-    const inicioY = Math.max(
-      0, Math.min(event.clientY - tam / 2, window.innerHeight - tam)
-    );
-
     const angulo = Math.random() * Math.PI * 2;
     const velocidad = 2 + Math.random() * 3.5;
 
     objetos.push({
       el,
-      x: inicioX,
-      y: inicioY,
+      x: Math.max(
+        0,
+        Math.min(event.clientX - tam / 2, window.innerWidth - tam)
+      ),
+      y: Math.max(
+        0,
+        Math.min(event.clientY - tam / 2, window.innerHeight - tam)
+      ),
       vx: Math.cos(angulo) * velocidad,
       vy: Math.sin(angulo) * velocidad,
       giro: (Math.random() - 0.5) * 5,
@@ -142,8 +139,8 @@ function animar(tiempo) {
     o.y += o.vy * dt;
     o.rotacion += o.giro * dt;
 
-    // Rebotes suaves por los cuatro bordes
-    const amortiguacion = 0.96;
+    // Rebotes suaves en los cuatro bordes
+    const amortiguacion = 0.92;
 
     if (o.x <= 0) {
       o.x = 0;
@@ -165,7 +162,7 @@ function animar(tiempo) {
       o.giro += (Math.random() - 0.5) * 0.8;
     }
 
-    // Pequeñas variaciones para un movimiento orgánico
+    // Pequeñas variaciones para un movimiento menos rígido
     o.vx += (Math.random() - 0.5) * 0.035;
     o.vy += (Math.random() - 0.5) * 0.035;
 
