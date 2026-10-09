@@ -65,9 +65,7 @@ document.body.addEventListener("pointerdown", function(event) {
 
   document.getElementById("mensaje").style.display = "none";
 
-  // Evita que la página acumule demasiados emojis en móvil
-  // sin borrar los que ya están en pantalla.
-  if (cantidadEnPantalla >= 150) return;
+
 
   let disponibles = emojis.filter(
     emoji => !anteriores.includes(emoji)
