@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -94,14 +93,6 @@ function tocar(event) {
 
   document.getElementById("mensaje").style.display = "none";
   ultimoToque = { x: event.clientX, y: event.clientY };
-
-  // Reinicia al acumular suficientes emojis para llenar la pantalla
-  const capacidad = Math.max(
-    30,
-    Math.floor(innerWidth * innerHeight / (tam * tam) * 1.15)
-  );
-
-  if (objetos.length + 5 > capacidad) reiniciar();
 
   let disponibles = emojis.filter(e => !anteriores.includes(e));
 
