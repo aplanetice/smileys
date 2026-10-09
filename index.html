@@ -41,12 +41,12 @@ html, body {
   text-align: center;
   pointer-events: none;
   user-select: none;
+  will-change: transform;
 }
 </style>
 </head>
 
 <body>
-
 <div id="mensaje">TAP</div>
 
 <script>
@@ -59,7 +59,8 @@ const emojis = [
 
 const tam = 42;
 let anteriores = [];
-let ocupados = new Set();
+let total = 0;
+let generacion = 0;
 
 function mezclar(lista) {
   for (let i = lista.length - 1; i > 0; i--) {
@@ -69,92 +70,108 @@ function mezclar(lista) {
   return lista;
 }
 
-function buscarHueco() {
-  const columnas = Math.max(1, Math.floor(window.innerWidth / tam));
-  const filas = Math.max(1, Math.floor(window.innerHeight / tam));
+function reiniciarSiHaceFalta() {
+  // Reinicia al llenar aproximadamente toda la pantalla
+  const capacidad = Math.ceil(
+    window.innerWidth * window.innerHeight / (tam * tam) * 1.5
+  );
 
-  // Busca huecos desde abajo hacia arriba
-  for (let fila = filas - 1; fila >= 0; fila--) {
-    const ordenColumnas = mezclar(
-      Array.from({ length: columnas }, (_, i) => i)
-    );
-
-    for (const columna of ordenColumnas) {
-      const clave = `${columna},${fila}`;
-
-      if (!ocupados.has(clave)) {
-        ocupados.add(clave);
-        return {
-          x: columna * tam,
-          y: fila * tam
-        };
-      }
-    }
+  if (total >= capacidad) {
+    generacion++;
+    document.querySelectorAll(".emoji").forEach(el => el.remove());
+    total = 0;
   }
-
-  // Si no quedan huecos, reinicia la pantalla
-  document.querySelectorAll(".emoji").forEach(el => el.remove());
-  ocupados.clear();
-
-  return buscarHueco();
 }
 
 document.body.addEventListener("pointerdown", function(event) {
   if (event.button !== undefined && event.button !== 0) return;
 
   document.getElementById("mensaje").style.display = "none";
+  reiniciarSiHaceFalta();
 
   let disponibles = emojis.filter(e => !anteriores.includes(e));
-
-  if (disponibles.length < 5) {
-    disponibles = [...emojis];
-  }
+  if (disponibles.length < 5) disponibles = [...emojis];
 
   const tanda = mezclar([...disponibles]).slice(0, 5);
   anteriores = tanda;
 
-  tanda.forEach(simbolo => {
-    const destino = buscarHueco();
-    const el = document.createElement("div");
+  const miGeneracion = generacion;
+  total += tanda.length;
 
+  tanda.forEach(simbolo => {
+    const el = document.createElement("div");
     el.className = "emoji";
     el.textContent = simbolo;
     document.body.appendChild(el);
 
-    const inicioX = event.clientX - tam / 2;
-    const inicioY = event.clientY - tam / 2;
+    let x = event.clientX - tam / 2;
+    let y = event.clientY - tam / 2;
 
-    const duracion = 35;
-    let paso = 0;
+    const angulo = Math.random() * Math.PI * 2;
+    const velocidad = 5 + Math.random() * 7;
+
+    let vx = Math.cos(angulo) * velocidad;
+    let vy = Math.sin(angulo) * velocidad - 4;
+
+    const gravedad = 0.28;
+    let rebotes = 0;
+    let pasos = 0;
 
     function mover() {
-      paso++;
+      if (miGeneracion !== generacion || !el.isConnected) return;
 
-      const t = Math.min(1, paso / duracion);
-      const suave = 1 - Math.pow(1 - t, 3);
+      pasos++;
 
-      const x = inicioX + (destino.x - inicioX) * suave;
-      const y = inicioY + (destino.y - inicioY) * suave;
-      const arco = Math.sin(t * Math.PI) * 45;
+      vy += gravedad;
+      x += vx;
+      y += vy;
 
-      el.style.transform =
-        `translate(${x}px, ${y - arco}px)`;
+      const maxX = Math.max(0, window.innerWidth - tam);
+      const maxY = Math.max(0, window.innerHeight - tam);
 
-      if (t < 1) {
-        requestAnimationFrame(mover);
-      } else {
-        el.style.transform =
-          `translate(${destino.x}px, ${destino.y}px)`;
+      // Rebotes laterales
+      if (x < 0) {
+        x = 0;
+        vx = Math.abs(vx) * 0.65;
+      } else if (x > maxX) {
+        x = maxX;
+        vx = -Math.abs(vx) * 0.65;
       }
+
+      // Rebote en el techo
+      if (y < 0) {
+        y = 0;
+        vy = Math.abs(vy) * 0.6;
+      }
+
+      // Rebote en el suelo, perdiendo energía
+      if (y >= maxY) {
+        y = maxY;
+        vy = -Math.abs(vy) * 0.48;
+        vx *= 0.88;
+        rebotes++;
+      }
+
+      el.style.transform = `translate(${x}px, ${y}px)`;
+
+      // Tras varios rebotes, termina y el emoji se queda
+      if (
+        (rebotes >= 5 && Math.abs(vy) < 3) ||
+        pasos >= 240 ||
+        (rebotes >= 8)
+      ) {
+        el.style.transform = `translate(${x}px, ${y}px)`;
+        el.style.willChange = "auto";
+        return;
+      }
+
+      requestAnimationFrame(mover);
     }
 
-    el.style.transform =
-      `translate(${inicioX}px, ${inicioY}px)`;
-
+    el.style.transform = `translate(${x}px, ${y}px)`;
     requestAnimationFrame(mover);
   });
 });
 </script>
-
 </body>
 </html>
