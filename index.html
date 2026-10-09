@@ -58,6 +58,7 @@ const tam = 42;
 let anteriores = [];
 let total = 0;
 let generacion = 0;
+let nivel = 0;
 
 function mezclar(lista) {
   for (let i = lista.length - 1; i > 0; i--) {
@@ -73,13 +74,15 @@ document.body.addEventListener("pointerdown", event => {
   document.getElementById("mensaje").style.display = "none";
 
   const capacidad = Math.ceil(
-    window.innerWidth * window.innerHeight / (tam * tam) * 1.5
+    window.innerWidth * window.innerHeight / (tam * tam)
   );
 
-  if (total >= capacidad) {
+  // Al llenar la pantalla, comienza una ronda nueva
+  if (total + 5 > capacidad) {
     generacion++;
     document.querySelectorAll(".emoji").forEach(el => el.remove());
     total = 0;
+    nivel = 0;
   }
 
   let disponibles = emojis.filter(e => !anteriores.includes(e));
@@ -88,6 +91,16 @@ document.body.addEventListener("pointerdown", event => {
   const tanda = mezclar([...disponibles]).slice(0, 5);
   anteriores = tanda;
   total += tanda.length;
+
+  const miGeneracion = generacion;
+  const maxX = Math.max(0, window.innerWidth - tam);
+  const maxY = Math.max(0, window.innerHeight - tam);
+
+  // Cada tanda ocupa una franja progresivamente más alta.
+  // Dentro de la franja, el punto de aterrizaje es aleatorio.
+  const alturaFranja = Math.max(50, window.innerHeight * 0.12);
+  const baseY = Math.max(0, maxY - nivel * alturaFranja);
+  nivel++;
 
   tanda.forEach(simbolo => {
     const el = document.createElement("div");
@@ -98,73 +111,73 @@ document.body.addEventListener("pointerdown", event => {
     let x = event.clientX - tam / 2;
     let y = event.clientY - tam / 2;
 
-    // Cada emoji sale con una dirección y velocidad diferentes
+    const destinoY = Math.max(
+      0,
+      baseY - Math.random() * alturaFranja
+    );
+
+    const destinoX = Math.random() * maxX;
+
+    // Lanzamiento aleatorio para que reboten por la pantalla
     const angulo = Math.random() * Math.PI * 2;
-    const velocidad = 7 + Math.random() * 8;
+    const velocidad = 6 + Math.random() * 7;
     let vx = Math.cos(angulo) * velocidad;
     let vy = Math.sin(angulo) * velocidad;
 
-    const gravedad = 0.16;
-    let rebotes = 0;
     let pasos = 0;
-    let quieto = false;
+    let fase = "rebote";
 
     function mover() {
-      if (quieto || !el.isConnected) return;
+      if (!el.isConnected || miGeneracion !== generacion) return;
 
       pasos++;
 
-      vy += gravedad;
-      x += vx;
-      y += vy;
+      if (fase === "rebote") {
+        x += vx;
+        y += vy;
 
-      const maxX = Math.max(0, window.innerWidth - tam);
-      const maxY = Math.max(0, window.innerHeight - tam);
+        const ancho = Math.max(0, window.innerWidth - tam);
+        const alto = Math.max(0, window.innerHeight - tam);
 
-      // Rebote izquierdo y derecho
-      if (x <= 0) {
-        x = 0;
-        vx = Math.abs(vx) * 0.82;
-        rebotes++;
-      } else if (x >= maxX) {
-        x = maxX;
-        vx = -Math.abs(vx) * 0.82;
-        rebotes++;
-      }
+        if (x <= 0) {
+          x = 0;
+          vx = Math.abs(vx) * 0.78;
+        } else if (x >= ancho) {
+          x = ancho;
+          vx = -Math.abs(vx) * 0.78;
+        }
 
-      // Rebote contra el techo
-      if (y <= 0) {
-        y = 0;
-        vy = Math.abs(vy) * 0.82;
-        rebotes++;
-      }
+        if (y <= 0) {
+          y = 0;
+          vy = Math.abs(vy) * 0.78;
+        } else if (y >= alto) {
+          y = alto;
+          vy = -Math.abs(vy) * 0.78;
+        }
 
-      // Rebote contra el suelo
-      if (y >= maxY) {
-        y = maxY;
-        vy = -Math.abs(vy) * 0.72;
-        vx *= 0.90;
-        rebotes++;
+        // Tras unos rebotes, se frena y se acomoda en la franja
+        if (pasos > 24) {
+          vx *= 0.975;
+          vy *= 0.975;
+        }
+
+        if (pasos >= 100) {
+          fase = "colocar";
+        }
+      } else {
+        // Termina de acomodarse suavemente, sin cuadrícula
+        x += (destinoX - x) * 0.07;
+        y += (destinoY - y) * 0.07;
+
+        if (Math.abs(destinoX - x) < 0.8 &&
+            Math.abs(destinoY - y) < 0.8) {
+          el.style.transform =
+            `translate(${destinoX}px, ${destinoY}px)`;
+          return;
+        }
       }
 
       el.style.transform = `translate(${x}px, ${y}px)`;
-
-      // Rebotes progresivamente más suaves; luego se queda
-      if (pasos > 30) {
-        vx *= 0.995;
-        vy *= 0.995;
-      }
-
-      if (
-        pasos >= 300 ||
-        (rebotes >= 5 && Math.abs(vx) < 0.7 &&
-         Math.abs(vy) < 1.2)
-      ) {
-        quieto = true;
-        el.style.transform = `translate(${x}px, ${y}px)`;
-        return;
-      }
-
       requestAnimationFrame(mover);
     }
 
