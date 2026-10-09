@@ -11,7 +11,9 @@ html, body {
   overflow: hidden;
   background: white;
   cursor: pointer;
+  touch-action: manipulation;
 }
+
 #mensaje {
   position: fixed;
   inset: 0;
@@ -22,6 +24,17 @@ html, body {
   color: #888;
   pointer-events: none;
 }
+
+.emoji {
+  position: fixed;
+  width: 42px;
+  height: 42px;
+  font-size: 32px;
+  line-height: 42px;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+}
 </style>
 </head>
 <body>
@@ -29,69 +42,72 @@ html, body {
 <div id="mensaje">✦ CLIC ✦</div>
 
 <script>
-const secuencia = [
-  "☁️", "🏹", "🙃", "🪭", "🍌", "🎠", "🎾", "🪸"
-];
+const emojis = ["☁️", "🏹", "🙃", "🪭", "🍌", "🎠", "🎾", "🪸"];
+let started = false;
 
-let clics = 0;
-const cantidad = 30;
+document.body.addEventListener("pointerdown", function(event) {
+  if (event.button !== undefined && event.button !== 0) return;
 
-document.body.addEventListener("click", function(event) {
   document.getElementById("mensaje").style.display = "none";
+  started = true;
 
-  const elegido = secuencia[clics % secuencia.length];
-  clics++;
+  const ancho = window.innerWidth;
+  const alto = window.innerHeight;
 
-  for (let i = 0; i < cantidad; i++) {
+  emojis.forEach((simbolo) => {
     const el = document.createElement("div");
-    el.textContent = elegido;
-    el.style.position = "fixed";
-    el.style.left = event.clientX + "px";
-    el.style.top = event.clientY + "px";
-    el.style.fontSize = (25 + Math.random() * 25) + "px";
-    el.style.width = "50px";
-    el.style.height = "50px";
-    el.style.textAlign = "center";
-    el.style.pointerEvents = "none";
-    el.style.userSelect = "none";
+    el.className = "emoji";
+    el.textContent = simbolo;
     document.body.appendChild(el);
 
-    let x = event.clientX - 25;
-    let y = event.clientY - 25;
-    let vx = (Math.random() - 0.5) * 22;
-    let vy = -Math.random() * 16 - 3;
-    const gravedad = 0.38;
-    const rebote = 0.72;
+    let x = event.clientX - 21;
+    let y = event.clientY - 21;
 
-    function animar() {
+    // Gran dispersión en todas las direcciones
+    const angulo = Math.random() * Math.PI * 2;
+    const velocidad = 4 + Math.random() * 7;
+    let vx = Math.cos(angulo) * velocidad;
+    let vy = Math.sin(angulo) * velocidad - 3;
+
+    const gravedad = 0.22;
+    const rebote = 0.55;
+    let rebotes = 0;
+
+    function mover() {
       vy += gravedad;
       x += vx;
       y += vy;
 
-      const maxX = window.innerWidth - 50;
-      const maxY = window.innerHeight - 50;
+      const maxX = window.innerWidth - 42;
+      const maxY = window.innerHeight - 42;
 
-      if (x < 0) {
-        x = 0;
+      if (x < 0 || x > maxX) {
+        x = Math.max(0, Math.min(x, maxX));
         vx *= -rebote;
       }
-      if (x > maxX) {
-        x = maxX;
-        vx *= -rebote;
-      }
+
       if (y > maxY) {
         y = maxY;
         vy *= -rebote;
-        if (Math.abs(vy) < 1) vy = 0;
+        rebotes++;
       }
 
-      el.style.left = x + "px";
-      el.style.top = y + "px";
-      requestAnimationFrame(animar);
+      el.style.transform = `translate(${x}px, ${y}px)`;
+
+      // Para ahorrar batería, termina al quedarse casi quieto
+      if (rebotes >= 4 || (Math.abs(vx) < 0.25 && Math.abs(vy) < 0.5 && y >= maxY)) {
+        el.style.transform = `translate(${x}px, ${Math.min(y, maxY)}px)`;
+        return;
+      }
+
+      requestAnimationFrame(mover);
     }
 
-    requestAnimationFrame(animar);
-  }
+    el.style.left = "0";
+    el.style.top = "0";
+    el.style.transform = `translate(${x}px, ${y}px)`;
+    requestAnimationFrame(mover);
+  });
 });
 </script>
 
