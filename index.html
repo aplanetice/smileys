@@ -26,7 +26,7 @@ html, body {
   place-items: center;
   font: 22px Arial, sans-serif;
   letter-spacing: 4px;
-  color: #888;
+  color: black;
   pointer-events: none;
 }
 
@@ -46,7 +46,8 @@ html, body {
 </head>
 
 <body>
-<div id="mensaje">✦ CLIC ✦</div>
+
+<div id="mensaje">TAP</div>
 
 <script>
 const emojis = [
@@ -56,95 +57,104 @@ const emojis = [
   "🥊", "🛼", "🍰", "🕸", "🐇", "☹️"
 ];
 
+const tam = 42;
 let anteriores = [];
+let ocupados = new Set();
+
+function mezclar(lista) {
+  for (let i = lista.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lista[i], lista[j]] = [lista[j], lista[i]];
+  }
+  return lista;
+}
+
+function buscarHueco() {
+  const columnas = Math.max(1, Math.floor(window.innerWidth / tam));
+  const filas = Math.max(1, Math.floor(window.innerHeight / tam));
+
+  // Busca huecos desde abajo hacia arriba
+  for (let fila = filas - 1; fila >= 0; fila--) {
+    const ordenColumnas = mezclar(
+      Array.from({ length: columnas }, (_, i) => i)
+    );
+
+    for (const columna of ordenColumnas) {
+      const clave = `${columna},${fila}`;
+
+      if (!ocupados.has(clave)) {
+        ocupados.add(clave);
+        return {
+          x: columna * tam,
+          y: fila * tam
+        };
+      }
+    }
+  }
+
+  // Si no quedan huecos, reinicia la pantalla
+  document.querySelectorAll(".emoji").forEach(el => el.remove());
+  ocupados.clear();
+
+  return buscarHueco();
+}
 
 document.body.addEventListener("pointerdown", function(event) {
   if (event.button !== undefined && event.button !== 0) return;
 
   document.getElementById("mensaje").style.display = "none";
 
-  // Prioriza emojis que no aparecieron en la tanda anterior
-  let disponibles = emojis.filter(
-    emoji => !anteriores.includes(emoji)
-  );
+  let disponibles = emojis.filter(e => !anteriores.includes(e));
 
   if (disponibles.length < 5) {
     disponibles = [...emojis];
   }
 
-  // Baraja la lista al azar
-  for (let i = disponibles.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [disponibles[i], disponibles[j]] =
-      [disponibles[j], disponibles[i]];
-  }
-
-  // Cinco emojis diferentes por clic
-  const tanda = disponibles.slice(0, 5);
+  const tanda = mezclar([...disponibles]).slice(0, 5);
   anteriores = tanda;
 
   tanda.forEach(simbolo => {
+    const destino = buscarHueco();
     const el = document.createElement("div");
+
     el.className = "emoji";
     el.textContent = simbolo;
     document.body.appendChild(el);
 
-    let x = event.clientX - 21;
-    let y = event.clientY - 21;
+    const inicioX = event.clientX - tam / 2;
+    const inicioY = event.clientY - tam / 2;
 
-    const angulo = Math.random() * Math.PI * 2;
-    const velocidad = 4 + Math.random() * 7;
-
-    let vx = Math.cos(angulo) * velocidad;
-    let vy = Math.sin(angulo) * velocidad - 3;
-
-    const gravedad = 0.22;
-    const rebote = 0.55;
-    let rebotes = 0;
-    let pasos = 0;
+    const duracion = 35;
+    let paso = 0;
 
     function mover() {
-      pasos++;
+      paso++;
 
-      vy += gravedad;
-      x += vx;
-      y += vy;
+      const t = Math.min(1, paso / duracion);
+      const suave = 1 - Math.pow(1 - t, 3);
 
-      const maxX = Math.max(0, window.innerWidth - 42);
-      const maxY = Math.max(0, window.innerHeight - 42);
+      const x = inicioX + (destino.x - inicioX) * suave;
+      const y = inicioY + (destino.y - inicioY) * suave;
+      const arco = Math.sin(t * Math.PI) * 45;
 
-      if (x < 0 || x > maxX) {
-        x = Math.max(0, Math.min(x, maxX));
-        vx *= -rebote;
-      }
+      el.style.transform =
+        `translate(${x}px, ${y - arco}px)`;
 
-      if (y < 0) {
-        y = 0;
-        vy = Math.abs(vy) * 0.7;
-      }
-
-      if (y > maxY) {
-        y = maxY;
-        vy *= -rebote;
-        rebotes++;
-      }
-
-      el.style.transform = `translate(${x}px, ${y}px)`;
-
-      // Termina el movimiento, pero conserva el emoji
-      if (rebotes >= 4 || pasos >= 240) {
+      if (t < 1) {
+        requestAnimationFrame(mover);
+      } else {
         el.style.transform =
-          `translate(${x}px, ${Math.min(y, maxY)}px)`;
-        return;
+          `translate(${destino.x}px, ${destino.y}px)`;
       }
-
-      requestAnimationFrame(mover);
     }
 
-    el.style.transform = `translate(${x}px, ${y}px)`;
+    el.style.transform =
+      `translate(${inicioX}px, ${inicioY}px)`;
+
     requestAnimationFrame(mover);
   });
 });
 </script>
+
 </body>
 </html>
