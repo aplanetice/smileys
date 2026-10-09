@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 html, body {
   margin: 0;
@@ -45,6 +47,7 @@ html, body {
 </head>
 
 <body>
+
 <div id="mensaje">TAP</div>
 
 <script>
@@ -53,18 +56,15 @@ const emojis = [
   "🎾", "🪸", "🎡", "🏰", "🪼", "🍄",
   "🧸", "🎢", "⛲️", "💊", "🍕", "🎪",
   "🥊", "🛼", "🍰", "🕸", "🐇", "☹️",
-
   "⚡️", "🔥", "💧", "🌧️", "🌊", "🐚",
   "🪻", "🌵", "🥥", "🍿", "🧃", "🥤",
   "🧋", "🍡", "🪩", "❌", "🛟"
 ];
+
 const tam = 42;
 const objetos = [];
 let anteriores = [];
-let ultimaTanda = [];
-let ultimoToque = { x: innerWidth / 2, y: innerHeight / 2 };
 let ultimoTiempo = 0;
-let ronda = 0;
 
 function mezclar(lista) {
   for (let i = lista.length - 1; i > 0; i--) {
@@ -76,31 +76,27 @@ function mezclar(lista) {
 
 function limites() {
   return {
-    x: Math.max(0, innerWidth - tam),
-    y: Math.max(0, innerHeight - tam)
+    x: Math.max(0, window.innerWidth - tam),
+    y: Math.max(0, window.innerHeight - tam)
   };
 }
 
-function reiniciar() {
-  ronda++;
-  objetos.forEach(o => o.el.remove());
-  objetos.length = 0;
-  ultimaTanda = [];
-}
-
-function tocar(event) {
+document.body.addEventListener("pointerdown", event => {
   if (event.button !== undefined && event.button !== 0) return;
 
   document.getElementById("mensaje").style.display = "none";
-  ultimoToque = { x: event.clientX, y: event.clientY };
 
-  let disponibles = emojis.filter(e => !anteriores.includes(e));
+  // Evita repetir los emojis de la tanda inmediatamente anterior
+  let disponibles = emojis.filter(
+    emoji => !anteriores.includes(emoji)
+  );
 
-  if (disponibles.length < 5) disponibles = [...emojis];
+  if (disponibles.length < 5) {
+    disponibles = [...emojis];
+  }
 
   const tanda = mezclar([...disponibles]).slice(0, 5);
   anteriores = tanda;
-  ultimaTanda = tanda;
 
   tanda.forEach(simbolo => {
     const el = document.createElement("div");
@@ -109,26 +105,29 @@ function tocar(event) {
     document.body.appendChild(el);
 
     const angulo = Math.random() * Math.PI * 2;
-    const velocidad = 2.5 + Math.random() * 4;
+    const velocidad = 2 + Math.random() * 3.5;
 
     objetos.push({
       el,
-      x: event.clientX - tam / 2,
-      y: event.clientY - tam / 2,
+      x: Math.max(
+        0,
+        Math.min(event.clientX - tam / 2, window.innerWidth - tam)
+      ),
+      y: Math.max(
+        0,
+        Math.min(event.clientY - tam / 2, window.innerHeight - tam)
+      ),
       vx: Math.cos(angulo) * velocidad,
       vy: Math.sin(angulo) * velocidad,
-      giro: (Math.random() - 0.5) * 0.08,
+      giro: (Math.random() - 0.5) * 5,
       rotacion: Math.random() * 360
     });
   });
-}
+});
 
-document.body.addEventListener("pointerdown", tocar);
-
-// Una sola animación compartida para ahorrar trabajo en móvil
 function animar(tiempo) {
   const dt = ultimoTiempo
-    ? Math.min((tiempo - ultimoTiempo) / 16.67, 2)
+    ? Math.min((tiempo - ultimoTiempo) / 16.67, 1.5)
     : 1;
 
   ultimoTiempo = tiempo;
@@ -139,22 +138,32 @@ function animar(tiempo) {
     o.y += o.vy * dt;
     o.rotacion += o.giro * dt;
 
-    // Rebote continuo por los cuatro lados
+    // Rebotes suaves en los cuatro bordes
+    const amortiguacion = 0.92;
+
     if (o.x <= 0) {
       o.x = 0;
-      o.vx = Math.abs(o.vx);
+      o.vx = Math.abs(o.vx) * amortiguacion;
+      o.giro += (Math.random() - 0.5) * 0.8;
     } else if (o.x >= borde.x) {
       o.x = borde.x;
-      o.vx = -Math.abs(o.vx);
+      o.vx = -Math.abs(o.vx) * amortiguacion;
+      o.giro += (Math.random() - 0.5) * 0.8;
     }
 
     if (o.y <= 0) {
       o.y = 0;
-      o.vy = Math.abs(o.vy);
+      o.vy = Math.abs(o.vy) * amortiguacion;
+      o.giro += (Math.random() - 0.5) * 0.8;
     } else if (o.y >= borde.y) {
       o.y = borde.y;
-      o.vy = -Math.abs(o.vy);
+      o.vy = -Math.abs(o.vy) * amortiguacion;
+      o.giro += (Math.random() - 0.5) * 0.8;
     }
+
+    // Pequeñas variaciones para un movimiento menos rígido
+    o.vx += (Math.random() - 0.5) * 0.035;
+    o.vy += (Math.random() - 0.5) * 0.035;
 
     o.el.style.transform =
       `translate3d(${o.x}px, ${o.y}px, 0) rotate(${o.rotacion}deg)`;
@@ -165,5 +174,6 @@ function animar(tiempo) {
 
 requestAnimationFrame(animar);
 </script>
+
 </body>
 </html>
