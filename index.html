@@ -1,4 +1,3 @@
-```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -42,7 +41,6 @@ html, body {
   text-align: center;
   pointer-events: none;
   user-select: none;
-  will-change: transform;
 }
 </style>
 </head>
@@ -60,16 +58,17 @@ const emojis = [
 ];
 
 let anteriores = [];
+let cantidadEnPantalla = 0;
 
 document.body.addEventListener("pointerdown", function(event) {
   if (event.button !== undefined && event.button !== 0) return;
 
   document.getElementById("mensaje").style.display = "none";
 
-  // Elimina la tanda anterior para mantener la web ligera
-  document.querySelectorAll(".emoji").forEach(el => el.remove());
+  // Evita que la página acumule demasiados emojis en móvil
+  // sin borrar los que ya están en pantalla.
+  if (cantidadEnPantalla >= 150) return;
 
-  // Prioriza emojis que no salieron en el clic anterior
   let disponibles = emojis.filter(
     emoji => !anteriores.includes(emoji)
   );
@@ -78,16 +77,16 @@ document.body.addEventListener("pointerdown", function(event) {
     disponibles = [...emojis];
   }
 
-  // Mezcla la colección de forma aleatoria
+  // Mezcla aleatoriamente la colección
   for (let i = disponibles.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [disponibles[i], disponibles[j]] =
       [disponibles[j], disponibles[i]];
   }
 
-  // Elige solo 5 emojis diferentes
   const tanda = disponibles.slice(0, 5);
   anteriores = tanda;
+  cantidadEnPantalla += tanda.length;
 
   tanda.forEach(simbolo => {
     const el = document.createElement("div");
@@ -137,9 +136,16 @@ document.body.addEventListener("pointerdown", function(event) {
 
       el.style.transform = `translate(${x}px, ${y}px)`;
 
-      // Termina la animación para ahorrar batería
-      if (rebotes >= 4 || pasos >= 240) {
-        el.style.willChange = "auto";
+      // Al terminar, el emoji permanece quieto en pantalla
+      if (
+        rebotes >= 4 ||
+        pasos >= 240 ||
+        (Math.abs(vx) < 0.25 &&
+         Math.abs(vy) < 0.5 &&
+         y >= maxY)
+      ) {
+        el.style.transform =
+          `translate(${x}px, ${Math.min(y, maxY)}px)`;
         return;
       }
 
@@ -154,4 +160,3 @@ document.body.addEventListener("pointerdown", function(event) {
 
 </body>
 </html>
-```
